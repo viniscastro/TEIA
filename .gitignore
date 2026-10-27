@@ -1,0 +1,20 @@
+# Ambiente virtual
+.venv/
+venv/
+ENV/
+
+# Variáveis de ambiente
+.env
+
+# Dados brutos e índices vetoriais locais
+data/raw/*
+!data/raw/.gitkeep
+data/chroma/
+
+# Caches e arquivos temporários
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ipynb_checkpoints/
+*.parquet.tmp
