@@ -13,6 +13,7 @@ from typing import Any, List, Optional
 import numpy as np
 import pandas as pd
 from src import config
+from src.tokens import truncate_to_tokens
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -194,6 +195,8 @@ def clean_and_prepare_dataset(
             f"Tags: {tags_str} | "
             f"Descrição: {short_desc}"
         )
+        # Garante que nenhum documento exceda a janela de tokens do embedding
+        doc_text = truncate_to_tokens(doc_text, max_tokens=512)
 
         cleaned_rows.append({
             "app_id": app_id,
