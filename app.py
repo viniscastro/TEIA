@@ -137,7 +137,12 @@ def buscar_similares(jogo_selecionado, embed_model_choice_sim):
     try:
         similares = find_similar(app_id, collection_name=collection, k=8)
     except Exception as e:
-        return f"<p>Erro: {e}</p>"
+        # Tentar com a outra coleção
+        try:
+            fallback = COLLECTION_NOMIC if collection == COLLECTION_BGE else COLLECTION_BGE
+            similares = find_similar(app_id, collection_name=fallback, k=8)
+        except Exception as e2:
+            return f"<p>Erro: {e2}</p>"
 
     if not similares:
         return "<p>Nenhum jogo similar encontrado.</p>"
