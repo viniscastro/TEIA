@@ -52,17 +52,18 @@ def find_similar(app_id: str, collection_name: str = COLLECTION_NOMIC, k: int = 
         other_col_name = COLLECTION_BGE if collection_name == COLLECTION_NOMIC else COLLECTION_NOMIC
         try:
             col2 = client.get_collection(other_col_name)
-            result = col2.get(ids=[app_id_str], include=["documents", "metadatas", "embeddings"])
-            if result and result.get("ids"):
+            result2 = col2.get(ids=[app_id_str], include=["documents", "metadatas", "embeddings"])
+            if result2 and result2.get("ids"):
                 col = col2
                 collection_name = other_col_name
+                result = result2
                 logger.warning(f"Jogo encontrado na coleção alternativa: {other_col_name}")
             else:
-                raise ValueError(f"Jogo com app_id {app_id_str} não encontrado em nenhuma coleção")
+                raise ValueError(f"Jogo com app_id {app_id_str} não está indexado em nenhuma coleção. Rode o indexador: python src/indexer.py")
         except ValueError:
             raise
         except Exception:
-            raise ValueError(f"Jogo com app_id {app_id_str} não encontrado na coleção {collection_name}")
+            raise ValueError(f"Jogo com app_id {app_id_str} não está indexado em nenhuma coleção. Rode o indexador: python src/indexer.py")
 
     embeddings = result.get("embeddings")
     if embeddings is None or len(embeddings) == 0:
