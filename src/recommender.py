@@ -178,7 +178,8 @@ def recommend(
     for rec in raw_recs:
         if not isinstance(rec, dict):
             continue
-        app_id = rec.get("app_id")
+        app_id = rec.get("app_id") or rec.get("id") or rec.get("game_id")
+        motivo = rec.get("motivo") or rec.get("reason") or rec.get("justificativa") or ""
         if app_id is None:
             continue
         app_id_str = str(app_id)
@@ -204,7 +205,7 @@ def recommend(
                 "tags": meta.get("tags", ""),
                 "short_description": meta.get("short_description", doc[:200] if doc else ""),
                 "distance": dist,
-                "motivo": rec.get("motivo", ""),
+                "motivo": motivo,
             }
         )
         if len(validated) >= max_results:

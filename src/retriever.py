@@ -72,10 +72,21 @@ def _search_with_where(
 ) -> Dict[str, Any]:
     """Executa busca vetorial com filtros."""
     client = get_chroma_client()
+    col = None
     try:
         col = client.get_collection(collection_name)
-    except Exception as e:
-        raise RuntimeError(f"Coleção '{collection_name}' não encontrada. Execute o indexador primeiro: python src/indexer.py") from e
+    except Exception:
+        # Fallback para outra coleção
+        for fb in [COLLECTION_NOMIC, COLLECTION_BGE]:
+            try:
+                col = client.get_collection(fb)
+                collection_name = fb
+                logger.warning(f"Usando coleção fallback {fb}")
+                break
+            except Exception:
+                continue
+    if col is None:
+        raise RuntimeError(f"Coleção '{collection_name}' não encontrada. Execute o indexador primeiro: python src/indexer.py")
 
     embed_model = col.metadata.get("embed_model") or (
         config.EMBED_MODEL_A if collection_name == COLLECTION_NOMIC else config.EMBED_MODEL_B

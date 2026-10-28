@@ -18,12 +18,28 @@ logger = logging.getLogger(__name__)
 def find_similar(app_id: str, collection_name: str = COLLECTION_NOMIC, k: int = 8) -> List[Dict[str, Any]]:
     """Encontra jogos mais parecidos com base em um app_id."""
     client = get_chroma_client()
+    app_id_str = str(app_id).strip()
+
+    # Tentar coleção solicitada primeiro
+    col = None
     try:
         col = client.get_collection(collection_name)
-    except Exception as e:
-        raise RuntimeError(f"Coleção '{collection_name}' não encontrada. Execute o indexador primeiro: python src/indexer.py") from e
+    except Exception:
+        pass
 
-    app_id_str = str(app_id).strip()
+    # Se não encontrar na coleção solicitada, tentar fallback
+    if col is None:
+        for fallback_col in [COLLECTION_NOMIC, COLLECTION_BGE]:
+            try:
+                col = client.get_collection(fallback_col)
+                collection_name = fallback_col
+                logger.warning(f"Usando coleção fallback: {fallback_col}")
+                break
+            except Exception:
+                continue
+
+    if col is None:
+        raise RuntimeError("Nenhuma coleção encontrada. Execute o indexador primeiro: python src/indexer.py")
 
     try:
         result = col.get(ids=[app_id_str], include=["documents", "metadatas", "embeddings"])
@@ -32,17 +48,31 @@ def find_similar(app_id: str, collection_name: str = COLLECTION_NOMIC, k: int = 
         raise
 
     if not result or not result.get("ids") or len(result["ids"]) == 0:
-        raise ValueError(f"Jogo com app_id {app_id_str} não encontrado na coleção {collection_name}")
+        # Tentar na outra coleção
+        other_col_name = COLLECTION_BGE if collection_name == COLLECTION_NOMIC else COLLECTION_NOMIC
+        try:
+            col2 = client.get_collection(other_col_name)
+            result = col2.get(ids=[app_id_str], include=["documents", "metadatas", "embeddings"])
+            if result and result.get("ids"):
+                col = col2
+                collection_name = other_col_name
+                logger.warning(f"Jogo encontrado na coleção alternativa: {other_col_name}")
+            else:
+                raise ValueError(f"Jogo com app_id {app_id_str} não encontrado em nenhuma coleção")
+        except ValueError:
+            raise
+        except Exception:
+            raise ValueError(f"Jogo com app_id {app_id_str} não encontrado na coleção {collection_name}")
 
     embeddings = result.get("embeddings")
     if embeddings is None or len(embeddings) == 0:
-        # Tentar buscar por query com metadados se embeddings não vierem
         try:
             meta = result.get("metadatas", [{}])[0] if result.get("metadatas") else {}
             name = meta.get("name", "")
             if name:
                 from src.llm import embed
-                ref_embedding = embed([name], model=col.metadata.get("embed_model"))[0]
+                embed_model = col.metadata.get("embed_model") or config.EMBED_MODEL_A
+                ref_embedding = embed([name], model=embed_model)[0]
             else:
                 raise ValueError(f"Não foi possível obter embedding do jogo {app_id_str}")
         except Exception:
