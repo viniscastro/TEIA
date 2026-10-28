@@ -8,7 +8,7 @@ import logging
 from typing import Any, Dict, List
 
 from src import config
-from src.indexer import COLLECTION_NOMIC, get_chroma_client
+from src.indexer import COLLECTION_BGE, COLLECTION_NOMIC, get_chroma_client
 from src.llm import embed
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
