@@ -86,6 +86,20 @@ def find_similar(app_id: str, collection_name: str = COLLECTION_NOMIC, k: int = 
 
 def get_all_games_for_dropdown(collection_name: str = COLLECTION_NOMIC) -> List[Dict[str, str]]:
     """Retorna lista de jogos para popular dropdown (com nome e app_id)."""
+    parquet_path = config.PROCESSED_DATA_DIR / "games.parquet"
+    if parquet_path.exists():
+        try:
+            import pandas as pd
+            df = pd.read_parquet(parquet_path)
+            games = [
+                {"label": f"{str(row['name'])} ({row['app_id']})", "value": str(row['app_id'])}
+                for _, row in df.iterrows()
+            ]
+            games.sort(key=lambda x: x["label"])
+            return games
+        except Exception as e:
+            logger.warning(f"Não foi possível carregar dropdown de games.parquet: {e}")
+
     client = get_chroma_client()
     try:
         col = client.get_collection(collection_name)
@@ -93,7 +107,6 @@ def get_all_games_for_dropdown(collection_name: str = COLLECTION_NOMIC) -> List[
         return []
 
     try:
-        # Pega todos os metadados
         result = col.get(include=["metadatas"])
         games = []
         if result and result.get("ids"):
@@ -101,9 +114,8 @@ def get_all_games_for_dropdown(collection_name: str = COLLECTION_NOMIC) -> List[
                 meta = result["metadatas"][i] if result.get("metadatas") and i < len(result["metadatas"]) else {}
                 name = meta.get("name", f"Jogo {game_id}")
                 games.append({"label": f"{name} ({game_id})", "value": str(game_id)})
-        # Ordena por nome
         games.sort(key=lambda x: x["label"])
         return games
     except Exception as e:
-        logger.error(f"Erro ao obter lista de jogos: {e}")
+        logger.error(f"Erro ao obter lista de jogos do ChromaDB: {e}")
         return []
