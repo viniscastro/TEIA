@@ -96,7 +96,7 @@ def recomendar(
         if len(res["retrieval"]["candidates"]) > 10:
             candidatos_txt += f"\n... e mais {len(res['retrieval']['candidates']) - 10} candidatos\n"
     if res.get("retrieval", {}).get("relaxed"):
-        candidatos_txt += f"\n⚠️ {res['retrieval'].get('message', 'Filtros relaxados')}\n"
+        candidatos_txt += f"\n[AVISO] {res['retrieval'].get('message', 'Filtros relaxados')}\n"
 
     # Métricas
     metricas = f"Tokens do contexto: {res['context_tokens']}\n"
@@ -208,12 +208,12 @@ def testar_temperatura(query):
 
 # Interface Gradio
 with gr.Blocks(theme=gr.themes.Soft(), title="GameFinder RAG") as demo:
-    gr.Markdown("# 🎮 GameFinder RAG - Recomendador de Jogos Steam")
+    gr.Markdown("# GameFinder RAG - Recomendador de Jogos Steam")
     gr.Markdown("Busca semântica com RAG, filtros extraídos por LLM e prevenção de alucinações")
 
     with gr.Tabs():
         # ABA 1: Recomendar
-        with gr.Tab("🎮 Recomendar"):
+        with gr.Tab("Recomendar"):
             with gr.Row():
                 with gr.Column(scale=2):
                     query_input = gr.Textbox(
@@ -246,7 +246,7 @@ with gr.Blocks(theme=gr.themes.Soft(), title="GameFinder RAG") as demo:
             )
 
         # ABA 2: Parecidos com...
-        with gr.Tab("🔗 Parecidos com..."):
+        with gr.Tab("Parecidos com..."):
             gr.Markdown("Encontre jogos vetorialmente similares a um jogo escolhido")
             with gr.Row():
                 if games_dropdown:
@@ -273,7 +273,7 @@ with gr.Blocks(theme=gr.themes.Soft(), title="GameFinder RAG") as demo:
             )
 
         # ABA 3: Como Funciona
-        with gr.Tab("💡 Como Funciona"):
+        with gr.Tab("Como Funciona"):
             gr.Markdown("## Painel Didático")
             
             with gr.Accordion("Tokenizador Interativo (cl100k_base)", open=True):
@@ -315,7 +315,7 @@ with gr.Blocks(theme=gr.themes.Soft(), title="GameFinder RAG") as demo:
             """)
 
         # ABA 4: Mapa Vetorial 2D
-        with gr.Tab("🗺️ Mapa Vetorial 2D"):
+        with gr.Tab("Mapa Vetorial 2D"):
             gr.Markdown("## Projeção UMAP do Espaço Vetorial")
             gr.Markdown("Visualização 2D dos embeddings. Pontos próximos representam jogos semanticamente similares.")
             try:
