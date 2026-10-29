@@ -1,0 +1,122 @@
+[
+  {
+    "id": 1,
+    "query": "jogo cooperativo para jogar com amigos",
+    "expected_app_ids": ["730", "570", "440"],
+    "description": "Jogos multiplayer/co-op populares"
+  },
+  {
+    "id": 2,
+    "query": "jogo de fazenda relaxante",
+    "expected_app_ids": ["413150", "294100"],
+    "description": "Jogos de fazenda/simulação relaxantes"
+  },
+  {
+    "id": 3,
+    "query": "jogo de terror cooperativo",
+    "expected_app_ids": ["381210", "602960"],
+    "description": "Terror cooperativo"
+  },
+  {
+    "id": 4,
+    "query": "souls-like desafiador",
+    "expected_app_ids": ["374320", "524220"],
+    "description": "Souls-like"
+  },
+  {
+    "id": 5,
+    "query": "jogo indie atmosférico",
+    "expected_app_ids": ["368340", "504230"],
+    "description": "Indie atmosférico"
+  },
+  {
+    "id": 6,
+    "query": "jogo gratuito multijogador",
+    "expected_app_ids": ["730", "570", "440"],
+    "description": "F2P multijogador"
+  },
+  {
+    "id": 7,
+    "query": "jogo de sobrevivência zumbi",
+    "expected_app_ids": ["513710", "239140"],
+    "description": "Sobrevivência zumbi"
+  },
+  {
+    "id": 8,
+    "query": "metroidvania desafiador",
+    "expected_app_ids": ["367520", "588650"],
+    "description": "Metroidvania"
+  },
+  {
+    "id": 9,
+    "query": "jogo para relaxar no fim de semana",
+    "expected_app_ids": ["413150", "304430"],
+    "description": "Relaxante/casual"
+  },
+  {
+    "id": 10,
+    "query": "roguelike com combate rápido",
+    "expected_app_ids": ["588650", "646570"],
+    "description": "Roguelike"
+  },
+  {
+    "id": 11,
+    "query": "jogo de construção e gestão",
+    "expected_app_ids": ["255710", "294100"],
+    "description": "City builder/gestão"
+  },
+  {
+    "id": 12,
+    "query": "jogo pixel art aventura",
+    "expected_app_ids": ["367520", "268910"],
+    "description": "Pixel art aventura"
+  },
+  {
+    "id": 13,
+    "query": "battle royale",
+    "expected_app_ids": ["578080", "1172470"],
+    "description": "Battle royale"
+  },
+  {
+    "id": 14,
+    "query": "jogo de corrida arcade",
+    "expected_app_ids": ["1551360", "2488620"],
+    "description": "Corrida arcade"
+  },
+  {
+    "id": 15,
+    "query": "jogo de plataforma 2D",
+    "expected_app_ids": ["504230", "504490"],
+    "description": "Plataforma 2D"
+  },
+  {
+    "id": 16,
+    "query": "jogo de estratégia em tempo real",
+    "expected_app_ids": ["8930", "231430"],
+    "description": "RTS"
+  },
+  {
+    "id": 17,
+    "query": "jogo de simulação realista",
+    "expected_app_ids": ["787860", "270880"],
+    "description": "Simulação"
+  },
+  {
+    "id": 18,
+    "query": "jogo cooperativo até 30 reais",
+    "expected_app_ids": ["238960", "251570"],
+    "description": "Co-op barato"
+  },
+  {
+    "id": 19,
+    "query": "jogo de tiro tático",
+    "expected_app_ids": ["730", "359550"],
+    "description": "FPS tático"
+  },
+  {
+    "id": 20,
+    "query": "jogo sandbox criativo",
+    "expected_app_ids": ["105600", "252490"],
+    "description": "Sandbox"
+  }
+]
