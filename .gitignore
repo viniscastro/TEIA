@@ -18,3 +18,10 @@ __pycache__/
 .pytest_cache/
 .ipynb_checkpoints/
 *.parquet.tmp
+
+# Logs
+*.log
+indexer.log
+# UMAP
+umap_*.parquet
+data/processed/umap_*.parquet
