@@ -163,5 +163,5 @@ A interface possui 4 abas principais:
 - **Destaque dinâmico no mapa:** Funcionalidade preparada para evolução futura
 
 ## Autores
-
-Projeto desenvolvido para a disciplina TEIA - IFPE (1ª Unidade).
+- [Jefferson Felipe](https://github.com/isjustjefferson)
+- [Vinícius Castro](https://github.com/vinicastro) 
