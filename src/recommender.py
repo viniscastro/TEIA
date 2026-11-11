@@ -21,8 +21,9 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 
-def _load_recommend_prompt() -> str:
-    prompt_path = config.PROMPTS_DIR / "recommend.txt"
+def _load_recommend_prompt(use_rag: bool = True) -> str:
+    prompt_name = "recommend.txt" if use_rag else "recommend_no_rag.txt"
+    prompt_path = config.PROMPTS_DIR / prompt_name
     if not prompt_path.exists():
         raise FileNotFoundError(f"Prompt não encontrado: {prompt_path}")
     with open(prompt_path, "r", encoding="utf-8") as f:
@@ -94,6 +95,7 @@ def recommend(
     temperature: float = 0.2,
     k_candidates: int = 20,
     max_results: int = 5,
+    override_filters: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Pipeline completo de recomendação RAG.
 
@@ -105,6 +107,7 @@ def recommend(
         temperature: Temperatura do LLM para recomendação
         k_candidates: Número de candidatos a recuperar
         max_results: Máximo de recomendações a retornar
+        override_filters: Filtros manuais (ex: da UI) mesclados após o parsing do LLM
 
     Returns:
         Dict com recomendações validadas, métricas, filtros, contexto etc.
@@ -119,6 +122,12 @@ def recommend(
         parsed_dict = parsed.model_dump()
     else:
         parsed_dict = parsed
+
+    # Filtros manuais da UI têm prioridade sobre os extraídos pelo LLM
+    if override_filters:
+        for key, value in override_filters.items():
+            if value is not None:
+                parsed_dict[key] = value
     timings["parser"] = time.time() - t0
 
     candidates = []
@@ -135,7 +144,7 @@ def recommend(
 
     # 3. Montagem do contexto e chamada ao LLM
     t0 = time.time()
-    prompt_template = _load_recommend_prompt()
+    prompt_template = _load_recommend_prompt(use_rag=use_rag)
 
     if use_rag and candidates:
         context_list = _format_context(candidates)
@@ -146,12 +155,11 @@ def recommend(
             CONTEXT_LIST=context_list,
         )
     else:
-        # Modo sem RAG - contexto vazio, mas mantém estrutura
+        # Modo sem RAG - prompt próprio (LLM responde de memória, sem contexto)
         parsed_filters_str = json.dumps(parsed_dict, ensure_ascii=False)
         prompt = prompt_template.format(
             USER_QUERY=user_query.strip(),
             PARSED_FILTERS=parsed_filters_str,
-            CONTEXT_LIST="[Nenhum jogo disponível no contexto. Siga estritamente as regras - não invente jogos.]",
         )
 
     context_tokens = count_tokens(prompt)
@@ -167,14 +175,36 @@ def recommend(
         logger.error(f"Erro na geração de recomendação: {e}")
         response = "[]"
 
-    timings["llm_generation"] = time.time() - t0
-    timings["total"] = time.time() - t_start
-
-    # 4. Validação cruzada de app_ids
+    # Retry único quando o modelo não seguiu o formato esperado
+    # (array vazio, ou objeto único sem a chave "recommendations")
     raw_recs = _extract_json_array(response)
+    if use_rag and candidates and (not raw_recs or (len(raw_recs) <= 1 and '"recommendations"' not in response)):
+        logger.info("Resposta fora do formato esperado. Tentando correção com o LLM...")
+        try:
+            correction_messages = messages + [
+                {"role": "assistant", "content": response[:2000]},
+                {
+                    "role": "user",
+                    "content": (
+                        'Sua resposta anterior não seguiu o formato. Retorne APENAS um objeto JSON '
+                        'no formato exato: {"recommendations": [{"app_id": 123, "motivo": "..."}]} '
+                        'com ATÉ 5 itens do contexto. Sem texto ou markdown.'
+                    ),
+                },
+            ]
+            response2 = chat(messages=correction_messages, temperature=temperature, json_mode=True)
+            raw_recs2 = _extract_json_array(response2)
+            if len(raw_recs2) > len(raw_recs):
+                response = response2
+                raw_recs = raw_recs2
+        except Exception as e:
+            logger.warning(f"Erro na tentativa de correção: {e}")
+
+    timings["llm_generation"] = time.time() - t0
     valid_app_ids = set(str(c["app_id"]) for c in candidates) if candidates else set()
 
     validated = []
+    seen_ids = set()
     for rec in raw_recs:
         if not isinstance(rec, dict):
             continue
@@ -183,6 +213,9 @@ def recommend(
         if app_id is None:
             continue
         app_id_str = str(app_id)
+        if app_id_str in seen_ids:
+            continue
+        seen_ids.add(app_id_str)
         if use_rag and candidates:
             if app_id_str not in valid_app_ids:
                 logger.warning(f"app_id {app_id_str} não encontrado nos candidatos - descartado (possível alucinação)")
@@ -210,6 +243,8 @@ def recommend(
         )
         if len(validated) >= max_results:
             break
+
+    timings["total"] = time.time() - t_start
 
     return {
         "user_query": user_query,

@@ -9,11 +9,12 @@ Recomendar ATÉ 5 jogos que melhor atendam ao pedido do usuário, utilizando EXC
 - É ESTRITAMENTE PROIBIDO inventar nomes, preços, mecânicas, IDs (app_id), descrições ou jogos que não estejam na lista.
 - Baseie suas justificativas APENAS nas informações presentes no contexto (nome, preço, tags, avaliações, descrição).
 - Priorize os jogos que melhor se adequam ao pedido, mas nunca extrapole ou suponha informações ausentes.
-- Retorne APENAS um array JSON válido, sem texto, explicações, markdown ou comentários.
-- Se nenhum jogo da lista se adequar ao pedido, retorne [].
+- Retorne APENAS um objeto JSON válido no formato especificado abaixo, sem texto, explicações, markdown ou comentários.
+- Se nenhum jogo da lista se adequar ao pedido, retorne {{"recommendations": []}}.
 
 # Formato de Resposta (OBRIGATÓRIO)
-[{{"app_id": 123456, "motivo": "Justificativa concisa e objetiva baseada nos dados do contexto."}}]
+Retorne um ÚNICO objeto JSON com a chave "recommendations" contendo um array de ATÉ 5 itens:
+{{"recommendations": [{{"app_id": 123456, "motivo": "Justificativa concisa e objetiva baseada nos dados do contexto."}}, {{"app_id": 789012, "motivo": "..."}}]}}
 
 # Informações para decisão
 Pedido do usuário: {USER_QUERY}
