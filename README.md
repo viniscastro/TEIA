@@ -108,19 +108,24 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
+> **Importante:** todas as etapas abaixo pressupõem o venv ativo (o prompt deve mostrar `(.venv)`). Sem ele, o Python global não encontrará as dependências (chromadb, gradio, etc.).
+
 ### 3. Preparação dos Dados e Indexação
+
+> **Nota:** os módulos do projeto são executados a partir da raiz com `python -m` (e não `python src/arquivo.py`, que falha porque os imports usam o pacote `src`). O `app.py` é a exceção: por estar na raiz, pode ser executado diretamente.
+
 ```bash
 # (Opcional) Baixar dataset bruto
 python scripts/download_dataset.py
 
 # Preparar dataset limpo (gera data/processed/games.parquet)
-python src/data_prep.py
+python -m src.data_prep
 
 # Gerar embeddings e indexar no ChromaDB
-python src/indexer.py
+python -m src.indexer
 
 # Gerar mapa vetorial UMAP (opcional, mas recomendado)
-python src/viz.py --collection all --max-samples 3000
+python -m src.viz --collection all --max-samples 3000
 ```
 
 ### 4. Executar a Aplicação
@@ -133,7 +138,7 @@ Acesse: [http://localhost:7860](http://localhost:7860)
 ### 5. Avaliação (Opcional)
 ```bash
 # Executar benchmark automatizado
-python eval/evaluate.py
+python -m eval.evaluate
 ```
 Os resultados serão salvos em `eval/results.md`.
 
