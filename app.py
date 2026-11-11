@@ -1,7 +1,6 @@
 """Interface Gradio do GameFinder RAG (Fase 7)."""
 
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -20,14 +19,17 @@ from src.recommender import recommend
 from src.similar import find_similar, get_all_games_for_dropdown
 from src.tokens import count_tokens, tokenize_preview, stats_doc_text
 
-# Carrega dados para dropdown
+# Carrega dados para dropdown (Gradio espera lista de tuplas (label, value))
 try:
-    games_dropdown = get_all_games_for_dropdown(COLLECTION_NOMIC)
-    if not games_dropdown:
-        games_dropdown = get_all_games_for_dropdown(COLLECTION_BGE)
+    games_dropdown_raw = get_all_games_for_dropdown(COLLECTION_NOMIC)
+    if not games_dropdown_raw:
+        games_dropdown_raw = get_all_games_for_dropdown(COLLECTION_BGE)
 except Exception as e:
     print(f"Erro ao carregar jogos para dropdown: {e}")
-    games_dropdown = []
+    games_dropdown_raw = []
+
+games_dropdown = [(g["label"], g["value"]) for g in games_dropdown_raw]
+games_default_value = games_dropdown[0][1] if games_dropdown else None
 
 
 def recomendar(
@@ -47,7 +49,13 @@ def recomendar(
     else:
         collection = COLLECTION_BGE
 
-    # Ajustar parsed query com slider de preço se fornecido
+    # Filtros manuais da UI têm prioridade sobre os extraídos pelo parser
+    override_filters = {}
+    if preco_max_slider is not None:
+        override_filters["preco_max"] = float(preco_max_slider)
+    if plataforma and plataforma != "Todas":
+        override_filters["plataforma"] = plataforma
+
     try:
         res = recommend(
             user_query=query.strip(),
@@ -56,6 +64,7 @@ def recomendar(
             temperature=float(temperatura),
             k_candidates=20,
             max_results=5,
+            override_filters=override_filters or None,
         )
     except Exception as e:
         return f"<p>Erro: {e}</p>", "", "", "", ""
@@ -68,7 +77,7 @@ def recomendar(
         for r in res["recommendations"]:
             app_id = r["app_id"]
             name = r.get("name", "Nome não disponível")
-            price = r.get("price", 0.0)
+            price = r.get("price") or 0.0
             tags = r.get("tags", "")
             motivo = r.get("motivo", "")
             steam_url = f"https://store.steampowered.com/app/{app_id}"
@@ -90,9 +99,11 @@ def recomendar(
     candidatos_txt = ""
     if res.get("retrieval") and res["retrieval"].get("candidates"):
         for c in res["retrieval"]["candidates"][:10]:
-            meta = c.get("metadata", {})
+            meta = c.get("metadata", {}) or {}
             dist = c.get("distance")
-            candidatos_txt += f"- {meta.get('name')} (ID: {c['app_id']}) | Dist: {dist:.4f} | ${meta.get('price'):.2f}\n"
+            price = meta.get("price") or 0.0
+            dist_str = f"{dist:.4f}" if dist is not None else "N/A"
+            candidatos_txt += f"- {meta.get('name')} (ID: {c['app_id']}) | Dist: {dist_str} | ${price:.2f}\n"
         if len(res["retrieval"]["candidates"]) > 10:
             candidatos_txt += f"\n... e mais {len(res['retrieval']['candidates']) - 10} candidatos\n"
     if res.get("retrieval", {}).get("relaxed"):
@@ -227,7 +238,7 @@ with gr.Blocks(theme=gr.themes.Soft(), title="GameFinder RAG") as demo:
                         lines=2,
                     )
                     with gr.Accordion("Opções Avançadas", open=False):
-                        preco_slider = gr.Slider(0, 200, value=100, label="Preço máximo (referência)")
+                        preco_slider = gr.Slider(0, 200, value=100, label="Preço máximo (aplicado como filtro)")
                         plataforma_dd = gr.Dropdown(["Todas", "windows", "mac", "linux"], value="Todas", label="Plataforma")
                         embed_choice = gr.Radio(["A - nomic-embed-text", "B - bge-m3"], value="A - nomic-embed-text", label="Modelo de Embedding")
                         temp_slider = gr.Slider(0.0, 1.5, value=0.2, step=0.1, label="Temperatura do LLM")
@@ -259,7 +270,7 @@ with gr.Blocks(theme=gr.themes.Soft(), title="GameFinder RAG") as demo:
                         choices=games_dropdown,
                         label="Selecione um jogo",
                         interactive=True,
-                        value=games_dropdown[0]["value"] if games_dropdown else None,
+                        value=games_default_value,
                     )
                 else:
                     jogo_dropdown = gr.Dropdown(
@@ -269,7 +280,7 @@ with gr.Blocks(theme=gr.themes.Soft(), title="GameFinder RAG") as demo:
                     )
                 embed_sim = gr.Radio(["A - nomic-embed-text", "B - bge-m3"], value="A - nomic-embed-text", label="Modelo")
             btn_similares = gr.Button("Buscar Similares", variant="primary")
-            similares_out = gr.HTML(label="Jogas Similares")
+            similares_out = gr.HTML(label="Jogos Similares")
 
             btn_similares.click(
                 buscar_similares,
