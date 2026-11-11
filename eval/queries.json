@@ -86,7 +86,7 @@
   {
     "id": 15,
     "query": "jogo de plataforma 2D",
-    "expected_app_ids": ["504230", "504490"],
+    "expected_app_ids": ["504230", "367520"],
     "description": "Plataforma 2D"
   },
   {

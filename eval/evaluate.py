@@ -26,6 +26,15 @@ def load_queries() -> List[Dict[str, Any]]:
 
 def evaluate_all() -> Dict[str, Any]:
     queries = load_queries()
+
+    # Cliente ChromaDB compartilhado (criado uma única vez)
+    from chromadb import PersistentClient
+    catalog_client = PersistentClient(path=str(config.CHROMA_DIR))
+    try:
+        catalog_col = catalog_client.get_collection(COLLECTION_NOMIC)
+    except Exception:
+        catalog_col = None
+
     results = {
         "config_a_no_rag": {"hits": 0, "total": 0, "hallucinations": 0, "times": [], "details": []},
         "config_b_nomic": {"hits": 0, "total": 0, "hallucinations": 0, "times": [], "details": []},
@@ -47,16 +56,16 @@ def evaluate_all() -> Dict[str, Any]:
             halluc_a = 0
             if recs_a:
                 # Verificar se existem no banco
-                from chromadb import PersistentClient
-                c = PersistentClient(path=str(config.CHROMA_DIR))
-                col = c.get_collection(COLLECTION_NOMIC)
-                for aid in recs_a:
-                    try:
-                        r = col.get(ids=[aid])
-                        if not r or not r.get("ids"):
+                if catalog_col is None:
+                    halluc_a = len(recs_a)
+                else:
+                    for aid in recs_a:
+                        try:
+                            r = catalog_col.get(ids=[aid])
+                            if not r or not r.get("ids"):
+                                halluc_a += 1
+                        except Exception:
                             halluc_a += 1
-                    except Exception:
-                        halluc_a += 1
             hit_a = 1 if expected.intersection(set(recs_a)) else 0
             results["config_a_no_rag"]["hits"] += hit_a
             results["config_a_no_rag"]["hallucinations"] += halluc_a
@@ -133,9 +142,25 @@ def generate_report(summary: Dict[str, Any]) -> str:
         report += f"| {name} | {s['hit_at_5']:.1f}% | {s['hallucinations']} | {s['avg_time_seconds']:.2f} |\n"
 
     report += "\n## Análise\n\n"
-    report += "- **RAG vs Sem RAG:** O uso de RAG com contexto vetorial reduz significativamente a taxa de alucinação.\n"
-    report += "- **Comparação de Embeddings:** Os modelos nomic-embed-text e bge-m3 apresentam desempenho similar.\n"
-    report += "- **Validação Anti-Alucinação:** Com RAG, todos os app_ids são validados contra o catálogo recuperado.\n\n"
+    a, b, c = summary["config_a_no_rag"], summary["config_b_nomic"], summary["config_c_bge"]
+
+    report += f"- **Alucinações (A sem RAG):** {a['hallucinations']} app_ids inventados fora do catálogo.\n"
+    if a["hallucinations"] + b["hallucinations"] + c["hallucinations"] == 0:
+        report += "- **RAG vs Sem RAG:** Com RAG, todos os app_ids são validados contra o catálogo recuperado, eliminando alucinações.\n"
+    if a["hallucinations"] > b["hallucinations"] or a["hallucinations"] > c["hallucinations"]:
+        report += "- **RAG vs Sem RAG:** O uso de RAG com contexto vetorial reduz a taxa de alucinação em relação ao LLM puro.\n"
+
+    if b["hit_at_5"] > c["hit_at_5"]:
+        report += "- **Comparação de Embeddings:** nomic-embed-text obteve Hit@5 superior ao bge-m3 neste benchmark.\n"
+    elif c["hit_at_5"] > b["hit_at_5"]:
+        report += "- **Comparação de Embeddings:** bge-m3 obteve Hit@5 superior ao nomic-embed-text neste benchmark.\n"
+    else:
+        report += "- **Comparação de Embeddings:** nomic-embed-text e bge-m3 obtiveram Hit@5 equivalente neste benchmark.\n"
+
+    if b["avg_time_seconds"] and c["avg_time_seconds"]:
+        report += f"- **Custo do pipeline:** sem RAG responde em {a['avg_time_seconds']:.0f}s; com RAG, o retriever adiciona recuperação + contexto maior (B: {b['avg_time_seconds']:.0f}s, C: {c['avg_time_seconds']:.0f}s).\n"
+
+    report += f"- **Hit@5 geral:** A = {a['hit_at_5']:.1f}% | B = {b['hit_at_5']:.1f}% | C = {c['hit_at_5']:.1f}%.\n\n"
 
     report += "## Detalhes por Query\n\n"
     for key, name in names.items():
