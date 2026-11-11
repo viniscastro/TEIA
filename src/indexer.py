@@ -92,9 +92,10 @@ def index_collection(
                 "Pulando indexação (use --force para refazer)."
             )
             return
-        if force:
-            logger.info(f"Removendo coleção anterior '{collection_name}' para recriação (--force)...")
-            client.delete_collection(collection_name)
+        # Count divergente ou --force: remove e recria do zero
+        reason = "--force" if force else f"count divergente ({current_count}/{total_docs})"
+        logger.info(f"Removendo coleção anterior '{collection_name}' para recriação ({reason})...")
+        client.delete_collection(collection_name)
 
     logger.info(f"Criando coleção '{collection_name}' usando modelo '{embed_model}'...")
     collection = client.create_collection(
